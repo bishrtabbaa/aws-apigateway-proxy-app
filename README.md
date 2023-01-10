@@ -25,14 +25,14 @@ This AWS API Gateway Proxy solution architecture solves this application network
 
 ### 04. API Gateway
 * Create API Gateway instance
-    ** API Type = `REST`
-    ** API Name = `Xyzware API`
-    ** Endpoint Type = `Regional`
+    * API Type = `REST`
+    * API Name = `Xyzware API`
+    * Endpoint Type = `Regional`
 * Create API Gateway Resource for mocks
-    ** Name = `Mock`
-    ** Path = `/mock`
-    ** Method = `GET`
-    ** Type = `Mock`
+    * Name = `Mock`
+    * Path = `/mock`
+    * Method = `GET`
+    * Type = `Mock`
 * Create API Gateway Resource for SQS
 * Create API Gateway Resource for DynamoDB
 * Create API Gateway Resource for Kinesis
@@ -48,20 +48,20 @@ This AWS API Gateway Proxy solution architecture solves this application network
 * Add CNAME record to hosted zone for this public resource(s) (e.g. `proxy.xyzware.io`)
 * Create distribution origin associated with the S3 bucket created earlier (e.g. `objectstorage-xyzware-io.xyzware.io`) using `Origin Access - Public`.
 * Define default distribution behavior for the S3 origin with the following settings:
-    ** Path pattern = `*`
-    ** Compress objects = `no`
-    ** Viewer protocol policy = `Redirect HTTP to HTTPS`
-    ** Allowed HTTP methods = `GET, HEAD, OPTIONS, PUT, POST, PATCH, DELETE`
-    ** Restrict viewer access = `no`
-    ** Cache key and origin requests = Cache policy = `Caching Disabled`; Origin Request custom policy = `Headers=None, Cookies=None, QueryStrings=All`
+    * Path pattern = `*`
+    * Compress objects = `no`
+    * Viewer protocol policy = `Redirect HTTP to HTTPS`
+    * Allowed HTTP methods = `GET, HEAD, OPTIONS, PUT, POST, PATCH, DELETE`
+    * Restrict viewer access = `no`
+    * Cache key and origin requests = Cache policy = `Caching Disabled`; Origin Request custom policy = `Headers=None, Cookies=None, QueryStrings=All`
 * Create distribution origin associated with the API Gateway created earlier.
 * Define distribution behavior for API Gateway origin
-    ** Path pattern = `api`
-    ** Compress objects = `no`
-    ** Viewer protocol policy = `Redirect HTTP to HTTPS`
-    ** Allowed HTTP methods = `GET, HEAD, OPTIONS, PUT, POST, PATCH, DELETE`
-    ** Restrict viewer access = `no`
-    ** Cache key and origin requests = Cache policy = `Caching Disabled`; Origin Request custom policy = `Headers=None, Cookies=None, QueryStrings=All`
+    * Path pattern = `api`
+    * Compress objects = `no`
+    * Viewer protocol policy = `Redirect HTTP to HTTPS`
+    * Allowed HTTP methods = `GET, HEAD, OPTIONS, PUT, POST, PATCH, DELETE`
+    * Restrict viewer access = `no`
+    * Cache key and origin requests = Cache policy = `Caching Disabled`; Origin Request custom policy = `Headers=None, Cookies=None, QueryStrings=All`
 
 ### 06. S3 Presigned URL Generator
 
@@ -79,10 +79,12 @@ In the Test section below, there are illustrative CLI examples for using the AWS
 
 #### Download
 
+```
 $ cd src/demo
 $ aws s3 presign s3://objectstorage-xyzware-io/helloworld.txt
 https://objectstorage-xyzware-io.s3.us-east-2.amazonaws.com/helloworld.txt?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIAZMRMMBEC4QLMHJ66%2F20230110%2Fus-east-2%2Fs3%2Faws4_request&X-Amz-Date=20230110T133408Z&X-Amz-Expires=3600&X-Amz-SignedHeaders=host&X-Amz-Signature=a45d8c650540942894ffb8c0bdf8b8c62c7f7de13ab0a60b2ffe46b0606fc8a9
 $ curl -X GET "https://proxy.xyzware.io/helloworld.txt?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIAZMRMMBEC4QLMHJ66%2F20230110%2Fus-east-2%2Fs3%2Faws4_request&X-Amz-Date=20230110T133408Z&X-Amz-Expires=3600&X-Amz-SignedHeaders=host&X-Amz-Signature=a45d8c650540942894ffb8c0bdf8b8c62c7f7de13ab0a60b2ffe46b0606fc8a9"
+```
 
 #### Upload
 
