@@ -25,20 +25,14 @@ This AWS API Gateway Proxy solution architecture solves this application network
 
 ### 04. API Gateway
 * Create API Gateway instance
-** API Type = `REST`
-** API Name = `Xyzware API`
-** Endpoint Type = `Regional`
+    ** API Type = `REST`
+    ** API Name = `Xyzware API`
+    ** Endpoint Type = `Regional`
 * Create API Gateway Resource for mocks
-** Name = `Mock`
-** Path = `/mock`
-** Method = `GET`
-** Type = `Mock`
-* Create API Gateway Resource for Lambda test
-** Name = `hello`
-** Path = `/hello`
-** Method = `GET`
-** Type = `Lambda Proxy`
-** Region = `us-east-2`
+    ** Name = `Mock`
+    ** Path = `/mock`
+    ** Method = `GET`
+    ** Type = `Mock`
 * Create API Gateway Resource for SQS
 * Create API Gateway Resource for DynamoDB
 * Create API Gateway Resource for Kinesis
@@ -46,6 +40,7 @@ This AWS API Gateway Proxy solution architecture solves this application network
 * Test REST API Resources and Methods
 
 [TODO] Custom Authorizer for API Gateway ... see References section
+[TODO] AWS resources and methods for AWS services
 
 ### 05. Amazon CloudFront
 * Create CloudFront distribution which will serve as the proxy entry point
@@ -53,24 +48,26 @@ This AWS API Gateway Proxy solution architecture solves this application network
 * Add CNAME record to hosted zone for this public resource(s) (e.g. `proxy.xyzware.io`)
 * Create distribution origin associated with the S3 bucket created earlier (e.g. `objectstorage-xyzware-io.xyzware.io`) using `Origin Access - Public`.
 * Define default distribution behavior for the S3 origin with the following settings:
-** Path pattern = `*`
-** Compress objects = `no`
-** Viewer protocol policy = `Redirect HTTP to HTTPS`
-** Allowed HTTP methods = `GET, HEAD, OPTIONS, PUT, POST, PATCH, DELETE`
-** Restrict viewer access = `no`
-** Cache key and origin requests = Cache policy = `Caching Disabled`; Origin Request custom policy = `Headers=None, Cookies=None, QueryStrings=All`
+    ** Path pattern = `*`
+    ** Compress objects = `no`
+    ** Viewer protocol policy = `Redirect HTTP to HTTPS`
+    ** Allowed HTTP methods = `GET, HEAD, OPTIONS, PUT, POST, PATCH, DELETE`
+    ** Restrict viewer access = `no`
+    ** Cache key and origin requests = Cache policy = `Caching Disabled`; Origin Request custom policy = `Headers=None, Cookies=None, QueryStrings=All`
 * Create distribution origin associated with the API Gateway created earlier.
 * Define distribution behavior for API Gateway origin
-** Path pattern = `api`
-** Compress objects = `no`
-** Viewer protocol policy = `Redirect HTTP to HTTPS`
-** Allowed HTTP methods = `GET, HEAD, OPTIONS, PUT, POST, PATCH, DELETE`
-** Restrict viewer access = `no`
-** Cache key and origin requests = Cache policy = `Caching Disabled`; Origin Request custom policy = `Headers=None, Cookies=None, QueryStrings=All`
+    ** Path pattern = `api`
+    ** Compress objects = `no`
+    ** Viewer protocol policy = `Redirect HTTP to HTTPS`
+    ** Allowed HTTP methods = `GET, HEAD, OPTIONS, PUT, POST, PATCH, DELETE`
+    ** Restrict viewer access = `no`
+    ** Cache key and origin requests = Cache policy = `Caching Disabled`; Origin Request custom policy = `Headers=None, Cookies=None, QueryStrings=All`
 
 ### 06. S3 Presigned URL Generator
 
-You must create an API wrapper that will generate S3 presigned URLs for a specific S3 Bucket and Key within a region.  In the Test section below, there are illustrative CLI examples for using the AWS CLI to generate URLs and then downloading files via the CloudFront distribution associated with S3.
+You must create an API wrapper that will generate S3 presigned URLs for a specific S3 Bucket and Key within a region.  The request should contain the bucket and object key; the response should contain the corresponding S3 presigned URL.  These URLs are scoped to a specific action (e.g. GET, PUT, POST, DELETE) on the object.
+
+In the Test section below, there are illustrative CLI examples for using the AWS CLI to generate URLs and then downloading files via the CloudFront distribution associated with S3.
 
 ## Build 
 
@@ -89,18 +86,24 @@ $ curl -X GET "https://proxy.xyzware.io/helloworld.txt?X-Amz-Algorithm=AWS4-HMAC
 
 #### Upload
 
+### Test Custom APIs
+
+### Test AWS APIs
+
 ## References
 
 * https://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-api-integration-types.html
-* https://aws.amazon.com/premiumsupport/knowledge-center/api-gateway-rest-api-sqs-errors/
-* https://github.com/monken/aws-ecr-public
 * https://docs.aws.amazon.com/general/latest/gr/s3.html
 * https://docs.aws.amazon.com/general/latest/gr/apigateway.html
 * https://aws.amazon.com/blogs/storage/using-presigned-urls-to-identify-per-requester-usage-of-amazon-s3/
 * https://aws.amazon.com/blogs/compute/introducing-custom-authorizers-in-amazon-api-gateway/
 * https://aws.amazon.com/blogs/compute/introducing-iam-and-lambda-authorizers-for-amazon-api-gateway-http-apis/
 * https://aws.amazon.com/blogs/compute/managing-multi-tenant-apis-using-amazon-api-gateway/
+* https://github.com/monken/aws-ecr-public
+* https://github.com/jamesb3ll/s3-presigned-url-lambda
+* https://aws.amazon.com/premiumsupport/knowledge-center/api-gateway-rest-api-sqs-errors/
 * https://github.com/boto/boto3/issues/2477
+* https://github.com/aws/aws-sdk-js/issues/669
 
 ## FAQ
 
