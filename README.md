@@ -1,16 +1,16 @@
 # aws-apigateway-proxy-app
 
 ## Use Case
-AWS customer applications with complex technology dependencies may operate in hybrid and multi-cloud environments that require application network connectivity between AWS resources and non-AWS domains.  For security conscious organizations that have a DENY-by-default mindset, this has traditionally meant firewall rules whitelisting application traffic to various AWS services as well as other software hosted in AWS.  This can increase the operational security overhead for the rules over time as new application services are added, existing services are changed, and old services are removed.  This can also result in application friction and lack of agility because application changes require network security changes to be implemented.  Furthermore, consider a SaaS context where these on-premise resources are communicating back to SaaS software hosted in AWS; hence, there is serious  operational complexity of making network security changes across the SaaS customer set when there are major application updates.
+AWS customer applications with complex technology dependencies may operate in hybrid and multi-cloud environments that require application network connectivity between AWS resources and non-AWS domains.  For security conscious organizations that have a ___DENY-by-default___ mindset, this has traditionally meant firewall rules whitelisting application traffic to various AWS services as well as other software hosted in AWS.  This can increase the operational security overhead for the rules over time as new application services are added, existing services are changed, and old services are removed.  This can also result in application friction and lack of agility because application changes require network security changes to be implemented.  Furthermore, consider a SaaS context where these on-premise resources are communicating back to SaaS software hosted in AWS; hence, there is serious  operational complexity of making network security changes across the SaaS customer set when there are major application updates.
 
 ## Architecture
 ![AWS API Gateway Proxy Architecture](./img/aws-apigateway-proxy-customdomain.png)
 
-This AWS API Gateway Proxy solution architecture solves this application network surface area problem by simplifying application traffic dependencies from external environments to AWS by using a single custom domain that the organization manages for network security, performance, and corporate brand requirements.  This solution is composed of Amazon Route53, Amazon Certificate Manager, Amazon Simple Storage Service (S3), Amazon CloudFront, and AWS API Gateway.  First and foremost, the solution minimzes the number of distinct AWS services that must be whitelisted for on-premise firewall rules.  The solution also centralizes DNS traffic scoped through a domain controlled by the organization using Route53, scales for large file uploads and downloads using CloudFront and S3, and finally enables application agility because API Gateway delivers convenient, low-code-no-code integration with native AWS services.
+This AWS API Gateway Proxy solution architecture solves this application network surface area problem by simplifying application traffic dependencies from external environments to AWS by using a ___single custom domain___ that the organization manages for network security, performance, and corporate brand requirements.  This solution is composed of Amazon Route53, Amazon Certificate Manager, Amazon Simple Storage Service (S3), Amazon CloudFront, and AWS API Gateway.  First and foremost, the solution ___minimzes___ the number of distinct AWS services that must be whitelisted for on-premise firewall rules.  The solution also ___centralizes___ DNS traffic scoped through a domain controlled by the organization using Route53, ___scales___ for large file uploads and downloads using CloudFront and S3, and finally ___enables___ application agility because API Gateway delivers convenient, low-code-no-code integration with native AWS services.
 
 ## Setup
 
-### 00
+### 00 [TODO]
 
 ### 01. Amazon Route53 DNS
 * Create public hosted zone for your domain (e.g. `xyzware.io`)
@@ -21,31 +21,37 @@ This AWS API Gateway Proxy solution architecture solves this application network
 ### 03. Amazon Simple Storage Service (S3)
 * Create S3 bucket for your application (e.g. `objectstorage-xyzware-io.xyzware.io`)
 * Block public access to bucket (e.g. this is the best practice and most secure)
-* Set empty IAM bucket policy (e.g. default is `DENY`)
+* Set empty IAM bucket policy (e.g. default is implicit `DENY`)
 
 ### 04. API Gateway
-* Create API Gateway instance
+* Create API Gateway (APIGW) instance
     * API Type = `REST`
     * API Name = `Xyzware API`
     * Endpoint Type = `Regional`
+* Create APIGW Resource api 
+    * Name = `/api`
 * Create API Gateway Resource for mocks
     * Name = `Mock`
-    * Path = `/mock`
+    * Path = `/api/mock`
     * Method = `GET`
     * Type = `Mock`
 * Create API Gateway Resource for SQS
 * Create API Gateway Resource for DynamoDB
 * Create API Gateway Resource for Kinesis
-* Deploy REST API Gateway Instance
+* Deploy REST API Gateway Instance to a specific stage (e.g. `dev`, `prod`, etc.)
+* Create custom domain name for APIGW and map to APIGW stage
+    * Domain = `api.xyzware.io`
+    * Mapping = `XYZWare API` (e.g. refers to instance created earlier `https://ou734xvpw2.execute-api.us-east-2.amazonaws.com/`)
+    * Stage = (e.g. `dev`, `prod`, etc.)
 * Test REST API Resources and Methods
 
-[TODO] Custom Authorizer for API Gateway ... see References section
-[TODO] AWS resources and methods for AWS services
+[TODO] Custom Authorizer and Security for API Gateway ... see References section
+[TODO] other AWS resources and methods for AWS services
 
 ### 05. Amazon CloudFront
-* Create CloudFront distribution which will serve as the proxy entry point
+* Create CloudFront distribution which will serve as the ___proxy entry point___ to the solution.
 * Add alternate domain name(s) corresponding to required resource name (e.g. `proxy.xyzware.io`)
-* Add CNAME record to hosted zone for this public resource(s) (e.g. `proxy.xyzware.io`)
+* Add CNAME record to R53 hosted zone for this public resource(s) (e.g. `proxy.xyzware.io`)
 * Create distribution origin associated with the S3 bucket created earlier (e.g. `objectstorage-xyzware-io.xyzware.io`) using `Origin Access - Public`.
 * Define default distribution behavior for the S3 origin with the following settings:
     * Path pattern = `*`
@@ -53,15 +59,19 @@ This AWS API Gateway Proxy solution architecture solves this application network
     * Viewer protocol policy = `Redirect HTTP to HTTPS`
     * Allowed HTTP methods = `GET, HEAD, OPTIONS, PUT, POST, PATCH, DELETE`
     * Restrict viewer access = `no`
-    * Cache key and origin requests = Cache policy = `Caching Disabled`; Origin Request custom policy = `Headers=None, Cookies=None, QueryStrings=All`
+    * Cache key and origin requests = Cache policy = `Caching Disabled`; then define Origin Request custom policy = `Headers=None, Cookies=None, QueryStrings=All`
 * Create distribution origin associated with the API Gateway created earlier.
+    * Domain = DNS name of API Gateway (e.g. `ou734xvpw2.execute-api.us-east-2.amazonaws.com`
+    * Protocol = `HTTPS Only`
+    * Port = `443`
+    * Origin path = stage of API Gateway (e.g. `dev` or `prod`)
 * Define distribution behavior for API Gateway origin
-    * Path pattern = `api`
+    * Path pattern = `/api/*`
     * Compress objects = `no`
-    * Viewer protocol policy = `Redirect HTTP to HTTPS`
+    * Viewer protocol policy = `HTTPS only`
     * Allowed HTTP methods = `GET, HEAD, OPTIONS, PUT, POST, PATCH, DELETE`
     * Restrict viewer access = `no`
-    * Cache key and origin requests = Cache policy = `Caching Disabled`; Origin Request custom policy = `Headers=None, Cookies=None, QueryStrings=All`
+    * Cache key and origin requests = Cache policy = `Caching Disabled`; Origin Request policy = `All Viewer`
 
 ### 06. S3 Presigned URL Generator
 
@@ -103,6 +113,8 @@ $ curl -X GET "https://proxy.xyzware.io/helloworld.txt?X-Amz-Algorithm=AWS4-HMAC
 * https://aws.amazon.com/blogs/compute/managing-multi-tenant-apis-using-amazon-api-gateway/
 * https://github.com/monken/aws-ecr-public
 * https://github.com/jamesb3ll/s3-presigned-url-lambda
+* https://aws.amazon.com/premiumsupport/knowledge-center/api-gateway-cloudfront-distribution/
+* https://aws.amazon.com/premiumsupport/knowledge-center/api-gateway-domain-cloudfront/
 * https://aws.amazon.com/premiumsupport/knowledge-center/api-gateway-rest-api-sqs-errors/
 * https://github.com/boto/boto3/issues/2477
 * https://github.com/aws/aws-sdk-js/issues/669
