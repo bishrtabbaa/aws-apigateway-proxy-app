@@ -53,18 +53,16 @@ First and foremost, the solution ___minimzes___ the number of distinct AWS servi
         * Service = `DynamoDB`
         * Method = `POST` (this may be counter-intuitive however it accords with the DDB API)
         * Action = `PutItem`
-        * Mapping Template = Content-Type = `application/json`; this is case-sensitive and specific to your DynamoDB table.
-        Template = ```
-        { 
-        "TableName": "Tenants","Item": 
+        * Mapping Template = Content-Type = `application/json`; this is case-sensitive and specific to your DynamoDB table. Template = ```{ 
+        "TableName": "Tenants",
+        "Item": 
         { 
         "TenantId": {"S": "$context.requestId" },
         "IsActive": {"BOOL": "$input.path('$.IsActive')"},
         "Name": {"S": "$input.path('$.Name')" },
         "Tier": {"S": "$input.path('$.Tier')"}
         }
-        }
-    ```
+        }```
     * Reference = https://aws.amazon.com/blogs/compute/using-amazon-api-gateway-as-a-proxy-for-dynamodb/
 * Create API Gateway Resource for SQS
 * Create API Gateway Resource for Kinesis
@@ -133,7 +131,8 @@ $ curl -X GET "https://proxy.xyzware.io/helloworld.txt?X-Amz-Algorithm=AWS4-HMAC
 ### Test Custom APIs
 
 * Test REST API Resources and Methods
-    * `curl -X GET https://proxy.xyzware.io/api/mock`
+    * `curl -X GET "https://proxy.xyzware.io/api/mock"`
+    * `curl -X GET "https://proxy.xyzware.io/api/ddb/tenants/"`
 
 ### Test AWS APIs
 
@@ -146,6 +145,7 @@ $ curl -X GET "https://proxy.xyzware.io/helloworld.txt?X-Amz-Algorithm=AWS4-HMAC
 * https://aws.amazon.com/blogs/compute/introducing-custom-authorizers-in-amazon-api-gateway/
 * https://aws.amazon.com/blogs/compute/introducing-iam-and-lambda-authorizers-for-amazon-api-gateway-http-apis/
 * https://aws.amazon.com/blogs/compute/managing-multi-tenant-apis-using-amazon-api-gateway/
+* https://aws.amazon.com/blogs/compute/using-amazon-api-gateway-as-a-proxy-for-dynamodb/
 * https://github.com/monken/aws-ecr-public
 * https://github.com/jamesb3ll/s3-presigned-url-lambda
 * https://aws.amazon.com/premiumsupport/knowledge-center/api-gateway-cloudfront-distribution/
