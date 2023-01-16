@@ -6,7 +6,9 @@ AWS customer applications with complex technology dependencies may operate in hy
 ## Architecture
 ![AWS API Gateway Proxy Architecture](./img/aws-apigateway-proxy-customdomain.png)
 
-This AWS API Gateway Proxy solution architecture solves this application network surface area problem by simplifying application traffic dependencies from external environments to AWS by using a ___single custom domain___ that the organization manages for network security, performance, and corporate brand requirements.  This solution is composed of Amazon Route53, Amazon Certificate Manager, Amazon Simple Storage Service (S3), Amazon CloudFront, and AWS API Gateway.  First and foremost, the solution ___minimzes___ the number of distinct AWS services that must be whitelisted for on-premise firewall rules.  The solution also ___centralizes___ DNS traffic scoped through a domain controlled by the organization using Route53, ___scales___ for large file uploads and downloads using CloudFront and S3, and finally ___enables___ application agility because API Gateway delivers convenient, low-code-no-code integration with native AWS services.
+This AWS API Gateway Proxy solution architecture solves this application cloud network surface area problem by simplifying application traffic dependencies from external environments to AWS by using a ___single custom domain___ that the organization manages for network security, performance, and corporate brand requirements.  This solution is composed of Amazon Route53, Amazon Certificate Manager, Amazon Simple Storage Service (S3), Amazon CloudFront, and AWS API Gateway.  
+
+First and foremost, the solution ___minimzes___ the number of distinct AWS services that must be whitelisted for on-premise firewall rules.  The solution also ___centralizes___ DNS traffic scoped through a domain controlled by the organization using Route53, ___scales___ for large file uploads and downloads using CloudFront and S3, and finally ___enables___ application agility because API Gateway delivers convenient, low-code-no-code integration with native AWS services.
 
 ## Setup
 
@@ -31,19 +33,49 @@ This AWS API Gateway Proxy solution architecture solves this application network
 * Create APIGW Resource api 
     * Name = `/api`
 * Create API Gateway Resource for mocks
-    * Name = `Mock`
+    * Resource Name = `Mock`
     * Path = `/api/mock`
     * Method = `GET`
     * Type = `Mock`
-* Create API Gateway Resource for SQS
 * Create API Gateway Resource for DynamoDB
+    * Resource Name = `/api/ddb/tenants`
+    * Method = `GET`
+        * Integration Type = `AWS`
+        * Region = (e.g. `us-east-2`)
+        * Service = `DynamoDB`
+        * Method = `POST` (this may be counter-intuitive however it accords with the DDB API)
+        * Action = `Scan`
+        * Mapping Template = Content-Type = `application/json`; Passthrough = `when there are no templates defined (recommended)`; 
+        Template = `{"TableName":"Tenants"}` (note this is template case-sensitive)
+    * Method = `PUT`
+        * Integration Type = `AWS`
+        * Region = (e.g. `us-east-2`)
+        * Service = `DynamoDB`
+        * Method = `POST` (this may be counter-intuitive however it accords with the DDB API)
+        * Action = `PutItem`
+        * Mapping Template = Content-Type = `application/json`; this is case-sensitive and specific to your DynamoDB table.
+        Template = ```
+        { 
+        "TableName": "Tenants","Item": 
+        { 
+        "TenantId": {"S": "$context.requestId" },
+        "IsActive": {"BOOL": "$input.path('$.IsActive')"},
+        "Name": {"S": "$input.path('$.Name')" },
+        "Tier": {"S": "$input.path('$.Tier')"}
+        }
+        }
+    ```
+    * Reference = https://aws.amazon.com/blogs/compute/using-amazon-api-gateway-as-a-proxy-for-dynamodb/
+* Create API Gateway Resource for SQS
 * Create API Gateway Resource for Kinesis
 * Deploy REST API Gateway Instance to a specific stage (e.g. `dev`, `prod`, etc.)
-* Create custom domain name for APIGW and map to APIGW stage
-    * Domain = `api.xyzware.io`
-    * Mapping = `XYZWare API` (e.g. refers to instance created earlier `https://ou734xvpw2.execute-api.us-east-2.amazonaws.com/`)
-    * Stage = (e.g. `dev`, `prod`, etc.)
+* Create custom domain name for APIGW and map to specific APIGW instance stage
+    * Domain Name = `api.xyzware.io`
+    * Instance Mapping = `XYZWare API` (e.g. refers to instance created earlier `https://ou734xvpw2.execute-api.us-east-2.amazonaws.com/`)
+    * Instance Stage = (e.g. `dev`, `prod`, etc.)
+* Create Route53 CNAME entry that points from the custom domain name (e.g. `api.xyzware.io`) to the newly created custom domain endpoint `d-y2x5azvr8e.execute-api.us-east-2.amazonaws.com`)
 * Test REST API Resources and Methods
+    * `curl -X GET https://api.xyzware.io/api/mock`
 
 [TODO] Custom Authorizer and Security for API Gateway ... see References section
 [TODO] other AWS resources and methods for AWS services
@@ -51,7 +83,7 @@ This AWS API Gateway Proxy solution architecture solves this application network
 ### 05. Amazon CloudFront
 * Create CloudFront distribution which will serve as the ___proxy entry point___ to the solution.
 * Add alternate domain name(s) corresponding to required resource name (e.g. `proxy.xyzware.io`)
-* Add CNAME record to R53 hosted zone for this public resource(s) (e.g. `proxy.xyzware.io`)
+* Add CNAME record to R53 hosted zone for this public resource(s) (e.g. from `proxy.xyzware.io` to `d1jpuj2baecazo.cloudfront.net`)
 * Create distribution origin associated with the S3 bucket created earlier (e.g. `objectstorage-xyzware-io.xyzware.io`) using `Origin Access - Public`.
 * Define default distribution behavior for the S3 origin with the following settings:
     * Path pattern = `*`
@@ -61,7 +93,7 @@ This AWS API Gateway Proxy solution architecture solves this application network
     * Restrict viewer access = `no`
     * Cache key and origin requests = Cache policy = `Caching Disabled`; then define Origin Request custom policy = `Headers=None, Cookies=None, QueryStrings=All`
 * Create distribution origin associated with the API Gateway created earlier.
-    * Domain = DNS name of API Gateway (e.g. `ou734xvpw2.execute-api.us-east-2.amazonaws.com`
+    * Domain = DNS name of API Gateway (e.g. `api.xyzware.io`
     * Protocol = `HTTPS Only`
     * Port = `443`
     * Origin path = stage of API Gateway (e.g. `dev` or `prod`)
@@ -71,7 +103,7 @@ This AWS API Gateway Proxy solution architecture solves this application network
     * Viewer protocol policy = `HTTPS only`
     * Allowed HTTP methods = `GET, HEAD, OPTIONS, PUT, POST, PATCH, DELETE`
     * Restrict viewer access = `no`
-    * Cache key and origin requests = Cache policy = `Caching Disabled`; Origin Request policy = `All Viewer`
+    * Cache key and origin requests = `Legacy Settings`; Headers = `None`; Query Strings = `None`; Cookies = `None`; Object caching = `Use origin cache headers`
 
 ### 06. S3 Presigned URL Generator
 
@@ -99,6 +131,9 @@ $ curl -X GET "https://proxy.xyzware.io/helloworld.txt?X-Amz-Algorithm=AWS4-HMAC
 #### Upload
 
 ### Test Custom APIs
+
+* Test REST API Resources and Methods
+    * `curl -X GET https://proxy.xyzware.io/api/mock`
 
 ### Test AWS APIs
 
