@@ -17,7 +17,7 @@ First and foremost, the solution ___minimzes___ the number of distinct AWS servi
     * Role Name = `MyAPIGatewayProxyRole`
     * Permissions = `AmazonSQSFullAccess, AmazonDynamoDBFullAccess, AmazonKinesisFullAccess, AmazonLambda_FullAccess`
     * Grant Trust policy = `apigateway.amazonaws.com, lambda.amazonaws.com`
-    * ARN = `arn:aws:iam::1234567890:role/MyAPIGatewayProxyRole`
+    * ARN = `arn:aws:iam::645411899653:role/MyAPIGatewayProxyRole`
 
 ### 02. Amazon Route53 DNS
 * Create public hosted zone for your domain (e.g. `xyzware.io`)
@@ -33,7 +33,7 @@ First and foremost, the solution ___minimzes___ the number of distinct AWS servi
 
 ### 05. Amazon Lambda 
 
-You must create an API wrapper that will generate S3 presigned URLs for a specific S3 Bucket and Key within a region.  The request should contain the bucket, object key, and action to perform; the response should contain the corresponding S3 presigned and proxy URLs.  These URLs are scoped to a specific action (e.g. GET, PUT, POST, DELETE) on the object.
+You must create an API wrapper that will generate S3 presigned URLs for a specific S3 Bucket and Key within a region.  The request should contain the bucket, object key, and action to perform; the response should contain the corresponding S3 presigned and proxy URLs.  These URLs are scoped to a specific action (e.g. GET, PUT, POST, DELETE) on the object. TODO... implement multi-part uploads.
 
 In the Test section below, there are also illustrative CLI examples for using the AWS CLI to generate URLs and then downloading files via the CloudFront distribution associated with S3.
 
@@ -42,7 +42,8 @@ In the Test section below, there are also illustrative CLI examples for using th
     * Runtime = `Python v3.9`
     * Architecture = `x86`
     * Permissions = `arn:aws:iam::1234567890:role/MyAPIGatewayProxyRole`
-    * Code = src/proxys3presignurlfunction.py
+    * Code = `src/proxys3presignurl/proxys3presignurlfunction.py`
+    * ARN = `arn:aws:lambda:us-east-2:645411899653:function:XyzwareProxyS3PresignUrlFunction`
 
 ### 05. API Gateway
 * Create API Gateway (APIGW) instance
@@ -64,7 +65,7 @@ In the Test section below, there are also illustrative CLI examples for using th
         * Service = `DynamoDB`
         * Method = `POST` (this may be counter-intuitive however it accords with the DDB API)
         * Action = `Scan`
-        * Role = `arn:aws:iam::1234567890:role/MyAPIGatewayProxyRole`
+        * Role = `arn:aws:iam::645411899653:role/MyAPIGatewayProxyRole`
         * Mapping Template = Content-Type = `application/json`; Passthrough = `when there are no templates defined (recommended)`; 
         Template = `{"TableName":"Tenants"}` (note this is template case-sensitive)
     * Method = `PUT`
@@ -73,7 +74,7 @@ In the Test section below, there are also illustrative CLI examples for using th
         * Service = `DynamoDB`
         * Method = `POST` (this may be counter-intuitive however it accords with the DDB API)
         * Action = `PutItem`
-        * Role = `arn:aws:iam::1234567890:role/MyAPIGatewayProxyRole`
+        * Role = `arn:aws:iam::645411899653:role/MyAPIGatewayProxyRole`
         * Mapping Template = Content-Type = `application/json`; this is case-sensitive and specific to your DynamoDB table. Template = ```{ 
         "TableName": "Tenants",
         "Item": 
@@ -87,7 +88,14 @@ In the Test section below, there are also illustrative CLI examples for using th
     * Reference = https://aws.amazon.com/blogs/compute/using-amazon-api-gateway-as-a-proxy-for-dynamodb/
 * Create API Gateway Resource for SQS
 * Create API Gateway Resource for Kinesis
-* 
+* Create API Gateway Resource for S3 Presigned URL generator
+    * Resource Name = `/api/proxypresignurl`
+    * Method = `ANY`
+        * Integration = `Lambda`
+        * Use Lambda Proxy Integration = `true`
+        * Region = `us-east-2`
+        * Function = `XyzwareProxyS3PresignUrlFunction` (e.g. references the Lambda Function created earlier)
+        * Role = `arn:aws:iam::645411899653:role/MyAPIGatewayProxyRole`
 * Deploy REST API Gateway Instance to a specific stage (e.g. `dev`, `prod`, etc.)
 * Create custom domain name for APIGW and map to specific APIGW instance stage
     * Domain Name = `api.xyzware.io`
@@ -95,8 +103,10 @@ In the Test section below, there are also illustrative CLI examples for using th
     * Instance Stage = (e.g. `dev`, `prod`, etc.)
 * Create Route53 CNAME entry that points from the custom domain name (e.g. `api.xyzware.io`) to the newly created custom domain named APIGW endpoint `d-y2x5azvr8e.execute-api.us-east-2.amazonaws.com`)
 * Test REST API Resources and Methods
-    * `curl -X GET https://api.xyzware.io/api/mock`
-    * `curl -X GET https://api.xyzware.io/api/ddb/tenants`
+    * `curl -X GET "https://api.xyzware.io/api/mock"`
+    * `curl -X GET "https://api.xyzware.io/api/ddb/tenants"`
+    * `curl -X GET "https://api.xyzware.io/api/proxypresignurl?bucket=objectstorage-xyzware-io&key=helloworld.txt&method=get"`
+    * `curl -X GET "https://api.xyzware.io/api/proxypresignurl?bucket=objectstorage-xyzware-io&key=helloworld.txt&method=put"`
 
 [TODO] Custom Authorizer and Security for API Gateway ... see References section
 [TODO] other AWS resources and methods for AWS services
