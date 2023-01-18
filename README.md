@@ -33,7 +33,7 @@ First and foremost, the solution ___minimzes___ the number of distinct AWS servi
 
 ### 05. Amazon Lambda 
 
-You must create an API wrapper that will generate S3 presigned URLs for a specific S3 Bucket and Key within a region.  The request should contain the bucket, object key, and action to perform; the response should contain the corresponding S3 presigned and proxy URLs.  These URLs are scoped to a specific action (e.g. GET, PUT, POST, DELETE) on the object. TODO... implement multi-part uploads.
+You must create an API wrapper that will generate S3 presigned URLs for a specific S3 Bucket and Key within a region.  The request should contain the bucket, object key, and action to perform; the response should contain the corresponding S3 presigned and proxy URLs.  These URLs are scoped to a specific action (e.g. GET, PUT, POST, DELETE) on the object.
 
 In the Test section below, there are also illustrative CLI examples for using the AWS CLI to generate URLs and then downloading files via the CloudFront distribution associated with S3.
 
@@ -108,9 +108,6 @@ In the Test section below, there are also illustrative CLI examples for using th
     * `curl -X GET "https://api.xyzware.io/api/proxypresignurl?bucket=objectstorage-xyzware-io&key=helloworld.txt&method=get"`
     * `curl -X GET "https://api.xyzware.io/api/proxypresignurl?bucket=objectstorage-xyzware-io&key=helloworld.txt&method=put"`
 
-[TODO] Custom Authorizer and Security for API Gateway ... see References section
-[TODO] other AWS resources and methods for AWS services
-
 ### 05. Amazon CloudFront
 * Create CloudFront distribution which will serve as the ___proxy entry point___ to the solution.
 * Add alternate domain name(s) corresponding to required resource name (e.g. `proxy.xyzware.io`)
@@ -184,3 +181,8 @@ $ curl -X GET "https://proxy.xyzware.io/helloworld.txt?X-Amz-Algorithm=AWS4-HMAC
 
 ## FAQ
 
+### TODO
+
+* Multi-part uploads
+* Custom Authorizer and Security for API Gateway ... see References section
+* other AWS resources and methods for AWS services
